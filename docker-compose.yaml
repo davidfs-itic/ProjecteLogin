@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  loginapp:
+    build:
+      context: .
+      dockerfile: ./loginapi.Dockerfile
+    container_name: loginapi
+    restart: unless-stopped
+    ports:
+      - "443:443"  # HTTPS
+    networks:
+      - internal
+networks:
+  internal:
+    name: internal
+    external: true
