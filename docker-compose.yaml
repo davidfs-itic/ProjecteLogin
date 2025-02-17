@@ -11,6 +11,17 @@ services:
       - "443:443"  # HTTPS
     networks:
       - internal
+  smtp:
+    #image: namshi/smtp
+    build:
+      context: .
+      dockerfile: ./smtp.Dockerfile
+    container_name: smtp
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+    networks:
+      - internal
 networks:
   internal:
     name: internal

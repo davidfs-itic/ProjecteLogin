@@ -3,6 +3,8 @@ FROM python:3.10-slim
 # Exposa el port per HTTPS
 EXPOSE 443
 
+WORKDIR /app
+
 # Copia les dependències (requirements.txt) dins del contenidor
 COPY ./API/requirements.txt /app/requirements.txt
 
