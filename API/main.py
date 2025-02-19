@@ -1,122 +1,128 @@
 from fastapi import FastAPI, HTTPException, Depends
-import bcrypt
+from pydantic import BaseModel, EmailStr
+import smtplib
 import uuid
-import os
-import jwt
-import datetime
+import mariadb
+from typing import Optional
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+from passlib.context import CryptContext
 from dotenv import load_dotenv
-import aiosmtplib
-from email.mime.text import MIMEText
-from db import insert_user, get_user_by_email, validate_user
-from fastapi.security import OAuth2PasswordBearer
+import os
 
-# Carregar variables d'entorn
+# Càrrega de variables d'entorn
 load_dotenv()
 
-# Configuració JWT
+# Configura la connexió a la base de dades
+conn = mariadb.connect(
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    host=os.getenv("DB_HOST"),
+    database=os.getenv("DB_NAME")
+)
+cursor = conn.cursor()
+
+app = FastAPI()
+
+# Clau secreta per a JWT
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Configuració del correu electrònic
+# Configuració de bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Configuració del servidor de correu
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
 EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+TOKEN_CONFIRMATION_URL = os.getenv("TOKEN_CONFIRMATION_URL")
 
-# Inicialitzar FastAPI
-app = FastAPI()
+# Model per al registre d'usuaris
+class UserCreate(BaseModel):
+    nom_usuari: str
+    email: EmailStr
+    contrassenya: str
 
-# Funció per enviar correus electrònics
+class UserLogin(BaseModel):
+    email: EmailStr
+    contrassenya: str
 
-# async def send_email(to_email: str, subject: str, body: str):
-#     msg = MIMEText(body)
-#     msg["From"] = EMAIL_USER
-#     msg["To"] = to_email
-#     msg["Subject"] = subject
+# Funció per encriptar contrasenyes
+def hash_contrassenya(contrassenya: str) -> str:
+    return pwd_context.hash(contrassenya)
 
-#     await aiosmtplib.send(
-#         msg,
-#         hostname=EMAIL_HOST,
-#         port=EMAIL_PORT,
-#         username=EMAIL_USER,
-#         password=EMAIL_PASS,
-#         use_tls=True,
-#     )
-# Funció per enviar correus electrònics
-async def send_email(to_email: str, subject: str, message: str):
-    msg = MIMEText(message, "html")
-    msg["From"] = "no-reply@loginapi.net"
-    msg["To"] = to_email
-    msg["Subject"] = subject
+# Funció per verificar contrasenyes
+def verificar_contrassenya(contrassenya: str, hashed: str) -> bool:
+    return pwd_context.verify(contrassenya, hashed)
 
+# Generar token JWT
+def crear_token_daccess(data: dict, expires_delta: timedelta):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# Enviar correu de confirmació
+def enviar_correu_confirmacio(email: str, token: str):
+    missatge = f"Subject: Confirma el teu compte\n\nFeu clic aquí per validar el compte: {TOKEN_CONFIRMATION_URL}/{token}"
+    
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-           await server.sendmail("no-reply@loginapi.net", to_email, msg.as_string())
+        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_USER, email, missatge)
     except Exception as e:
-        print(f"Error enviant correu: {e}")
+        print("Error enviant correu:", e)
 
-# Endpoint per a registrar un usuari
-@app.post("/register/")
-async def register_user(nom_usuari: str, email: str, contrassenya: str):
-    existing_user = get_user_by_email(email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Aquest email ja està registrat.")
+# Endpoint per registrar un usuari
+@app.post("/registre/")
+def registre_usuari(usuari: UserCreate):
+    token = str(uuid.uuid4())
+    hashed_password = hash_contrassenya(usuari.contrassenya)
+    try:
+        cursor.execute("INSERT INTO usuaris (nom_usuari, email, contrassenya, token, validat) VALUES (?, ?, ?, ?, ?)",
+                       (usuari.nom_usuari, usuari.email, hashed_password, token, False))
+        conn.commit()
+        enviar_correu_confirmacio(usuari.email, token)
+        return {"missatge": "Usuari registrat. Comprova el teu correu per validar-lo."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {e}")
 
-    hashed_password = bcrypt.hashpw(contrassenya.encode("utf-8"), bcrypt.gensalt())
-    validation_token = str(uuid.uuid4())
+# Endpoint per validar un usuari
+@app.get("/validar/{token}")
+def validar_usuari(token: str):
+    cursor.execute("SELECT id FROM usuaris WHERE token = ? AND validat = ?", (token, False))
+    usuari = cursor.fetchone()
+    if not usuari:
+        raise HTTPException(status_code=400, detail="Token invàlid o usuari ja validat")
+    
+    cursor.execute("UPDATE usuaris SET validat = ? WHERE token = ?", (True, token))
+    conn.commit()
+    return {"missatge": "Compte validat correctament."}
 
-    insert_user(nom_usuari, email, hashed_password, validation_token)
-
-    validation_link = f"http://localhost:8000/validate/{validation_token}"
-    await send_email(email, "Validació del compte", f"Fes clic per validar el teu compte: {validation_link}")
-
-    return {"message": "Usuari registrat! Comprova el teu correu per validar-lo."}
-
-# Endpoint per a validar un usuari
-@app.get("/validate/{token}")
-def validate_user_endpoint(token: str):
-    if validate_user(token):
-        return {"message": "Usuari validat correctament!"}
-    else:
-        raise HTTPException(status_code=400, detail="Token invàlid o usuari ja validat.")
-
-# Endpoint per a iniciar sessió i obtenir un token JWT
+# Endpoint per iniciar sessió i obtenir token JWT
 @app.post("/login/")
-def login(email: str, contrassenya: str):
-    user = get_user_by_email(email)
-    if not user or not user["validat"]:
-        raise HTTPException(status_code=401, detail="Usuari no validat o inexistent.")
-
-    if not bcrypt.checkpw(contrassenya.encode("utf-8"), user["contrassenya"].encode("utf-8")):
-        raise HTTPException(status_code=401, detail="Credencials incorrectes.")
-
-    # Generar token JWT
-    token_data = {
-        "sub": user["email"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    }
-    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
+def iniciar_sessio(usuari: UserLogin):
+    cursor.execute("SELECT id, contrassenya FROM usuaris WHERE email = ? AND validat = ?", 
+                   (usuari.email, True))
+    usuari_db = cursor.fetchone()
+    if not usuari_db or not verificar_contrassenya(usuari.contrassenya, usuari_db[1]):
+        raise HTTPException(status_code=400, detail="Credencials incorrectes o usuari no validat")
+    
+    token_expire = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    token = crear_token_daccess({"sub": usuari.email}, token_expire)
     return {"access_token": token, "token_type": "bearer"}
 
-
-# Endpoint on cal estar autenticat per accedir-hi
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Desxifra el token JWT i retorna l'email de l'usuari autenticat"""
+# Endpoint protegit amb JWT
+@app.get("/perfil/")
+def perfil_usuari(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["sub"]
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token caducat")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token invàlid")
-
-@app.get("/perfil/")
-def perfil_usuari(email: str = Depends(get_current_user)):
-    """Endpoint protegit: només es pot accedir si es té un token vàlid"""
-    user = get_user_by_email(email)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuari no trobat")
-    return {"nom_usuari": user["nom_usuari"], "email": user["email"]}
+        usuari_id = payload.get("sub")
+        if usuari_id is None:
+            raise HTTPException(status_code=401, detail="Token invàlid")
+        return {"missatge": f"Benvingut, usuari {usuari_id}"}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="No autoritzat")
