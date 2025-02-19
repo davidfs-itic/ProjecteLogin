@@ -27,20 +27,33 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 app = FastAPI()
 
 # Funció per enviar correus electrònics
-async def send_email(to_email: str, subject: str, body: str):
-    msg = MIMEText(body)
-    msg["From"] = EMAIL_USER
+
+# async def send_email(to_email: str, subject: str, body: str):
+#     msg = MIMEText(body)
+#     msg["From"] = EMAIL_USER
+#     msg["To"] = to_email
+#     msg["Subject"] = subject
+
+#     await aiosmtplib.send(
+#         msg,
+#         hostname=EMAIL_HOST,
+#         port=EMAIL_PORT,
+#         username=EMAIL_USER,
+#         password=EMAIL_PASS,
+#         use_tls=True,
+#     )
+# Funció per enviar correus electrònics
+async def send_email(to_email: str, subject: str, message: str):
+    msg = MIMEText(message, "html")
+    msg["From"] = "no-reply@loginapi.net"
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    await aiosmtplib.send(
-        msg,
-        hostname=EMAIL_HOST,
-        port=EMAIL_PORT,
-        username=EMAIL_USER,
-        password=EMAIL_PASS,
-        use_tls=True,
-    )
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+           await server.sendmail("no-reply@loginapi.net", to_email, msg.as_string())
+    except Exception as e:
+        print(f"Error enviant correu: {e}")
 
 # Endpoint per a registrar un usuari
 @app.post("/register/")

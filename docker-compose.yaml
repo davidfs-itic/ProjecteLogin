@@ -11,17 +11,17 @@ services:
       - 443:443  # HTTPS
     networks:
       - internal
-  smtp:
-    #image: namshi/smtp
-    build:
-      context: .
-      dockerfile: ./smtp.Dockerfile
-    container_name: smtp
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
     restart: unless-stopped
     ports:
-      - 8025:8025  # SMTP
+      - "1025:1025"  # Port SMTP per enviar correus
+      - "8025:8025"  # Interfície web per veure els correus
     networks:
       - internal
+
 networks:
   internal:
     name: internal
