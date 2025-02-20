@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 import smtplib
 import uuid
-import mariadb
+import mysql.connector
 from typing import Optional
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -13,13 +13,18 @@ import os
 # Càrrega de variables d'entorn
 load_dotenv()
 
+# Configura la connexió a MariaDB
+db_config = {
+    'host': os.getenv("DB_HOST"),
+    'user': os.getenv("DB_USER"),
+    'password': os.getenv("DB_PASSWORD"),
+    'database': os.getenv("DB_NAME"),
+    'collation': 'utf8mb4_general_ci'
+}
+
+    
 # Configura la connexió a la base de dades
-conn = mariadb.connect(
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST"),
-    database=os.getenv("DB_NAME")
-)
+conn = conn = mysql.connector.connect(**db_config)
 cursor = conn.cursor()
 
 app = FastAPI()
