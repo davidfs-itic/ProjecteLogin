@@ -70,8 +70,8 @@ def enviar_correu_confirmacio(email: str, token: str):
     
     try:
         with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            #server.starttls()
+            #server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.sendmail(EMAIL_USER, email, missatge)
     except Exception as e:
         print("Error enviant correu:", e)

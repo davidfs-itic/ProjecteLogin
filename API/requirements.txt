@@ -1,7 +1,7 @@
 fastapi
 pydantic[email]
 uvicorn
-mariadb
+mysql-connector-python
 passlib[bcrypt]
 python-dotenv
 python-jose[cryptography]
