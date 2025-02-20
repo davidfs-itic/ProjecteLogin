@@ -10,6 +10,7 @@ from passlib.context import CryptContext
 from dotenv import load_dotenv
 import os
 
+
 # Càrrega de variables d'entorn
 load_dotenv()
 
