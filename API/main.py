@@ -100,20 +100,29 @@ def registre_usuari(usuari: UserCreate):
 # Endpoint per validar un usuari
 @app.get("/validar/{token}")
 def validar_usuari(token: str):
-    cursor.execute("SELECT id FROM usuaris WHERE token = ? AND validat = ?", (token, False))
+    cursor.execute(
+        "SELECT id FROM usuaris WHERE token = %s AND validat = %s",
+        (token, False)
+    )
     usuari = cursor.fetchone()
     if not usuari:
         raise HTTPException(status_code=400, detail="Token invàlid o usuari ja validat")
     
-    cursor.execute("UPDATE usuaris SET validat = ? WHERE token = ?", (True, token))
+    cursor.execute(
+        "UPDATE usuaris SET validat = %s WHERE token = %s",
+        (True, token)
+    )
     conn.commit()
     return {"missatge": "Compte validat correctament."}
+
 
 # Endpoint per iniciar sessió i obtenir token JWT
 @app.post("/login/")
 def iniciar_sessio(usuari: UserLogin):
-    cursor.execute("SELECT id, contrassenya FROM usuaris WHERE email = ? AND validat = ?", 
-                   (usuari.email, True))
+    cursor.execute(
+        "SELECT id, contrassenya FROM usuaris WHERE email = %s AND validat = %s",
+        (usuari.email, True)
+    )
     usuari_db = cursor.fetchone()
     if not usuari_db or not verificar_contrassenya(usuari.contrassenya, usuari_db[1]):
         raise HTTPException(status_code=400, detail="Credencials incorrectes o usuari no validat")
