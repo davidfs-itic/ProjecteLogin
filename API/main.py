@@ -82,20 +82,21 @@ def enviar_correu_confirmacio(email: str, token: str):
     except Exception as e:
         print("Error enviant correu:", e)
 
-# Endpoint per registrar un usuari
 @app.post("/registre/")
 def registre_usuari(usuari: UserCreate):
     token = str(uuid.uuid4())
     hashed_password = hash_contrassenya(usuari.contrassenya)
     try:
-        cursor.execute("INSERT INTO usuaris (nom_usuari, email, contrassenya, token, validat) VALUES (?, ?, ?, ?, ?)",
-                       (usuari.nom_usuari, usuari.email, hashed_password, token, False))
+        cursor.execute(
+            "INSERT INTO usuaris (nom_usuari, email, contrassenya, token, validat) VALUES (%s, %s, %s, %s, %s)",
+            (usuari.nom_usuari, usuari.email, hashed_password, token, False)
+        )
         conn.commit()
         enviar_correu_confirmacio(usuari.email, token)
         return {"missatge": "Usuari registrat. Comprova el teu correu per validar-lo."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {e}")
-
+    
 # Endpoint per validar un usuari
 @app.get("/validar/{token}")
 def validar_usuari(token: str):
