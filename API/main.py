@@ -72,8 +72,8 @@ def crear_token_daccess(data: dict, expires_delta: timedelta):
 
 # Enviar correu de confirmació
 def enviar_correu_confirmacio(email: str, token: str):
-    missatge = f"Subject: Confirma el teu compte\n\nFeu clic aquí per validar el compte: {TOKEN_CONFIRMATION_URL}/{token}"
-    
+    missatge = f"Subject: Confirma el teu compte\n\nFeu clic aqui per validar el compte: {TOKEN_CONFIRMATION_URL}/{token}"
+   
     try:
         with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
             #server.starttls()
