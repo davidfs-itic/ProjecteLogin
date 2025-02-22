@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 import os
-
+from database import inicialitzar_base_dades  # Importa la funció
 
 # Càrrega de variables d'entorn
 load_dotenv()
@@ -23,6 +23,8 @@ db_config = {
     'collation': 'utf8mb4_general_ci'
 }
 
+# Inicialitza la base de dades
+inicialitzar_base_dades(db_config)
     
 # Configura la connexió a la base de dades
 conn = conn = mysql.connector.connect(**db_config)
