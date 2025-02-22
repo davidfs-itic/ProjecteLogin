@@ -11,7 +11,7 @@ def inicialitzar_base_dades(db_config):
             host=db_config['host'],
             user=db_config['user'],
             password=db_config['password'],
-            collation=db_config['utf8mb4_general_ci']
+            collation='utf8mb4_general_ci'
         )
     except mysql.connector.Error as err:
         logging.error(f"Error de connexió a la base de dades: {err}")
@@ -35,7 +35,7 @@ def inicialitzar_base_dades(db_config):
                 sys.exit(1)  # Finalitzar l'aplicació amb codi d'error 1
         else:
             logging.info("La base de dades ja existeix.")
-            
+
         # Connectar a la base de dades específica
         mydb.database = db_config['database']
         mycursor = mydb.cursor()
