@@ -4,6 +4,17 @@ from dotenv import load_dotenv
 import os
 import sys
 
+# Configura el logger per escriure a stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Escriu els logs a stdout
+    ]
+)
+
+
+
 def inicialitzar_base_dades(db_config):
     try:
         # Connectar al servidor de base de dades sense especificar la base de dades
