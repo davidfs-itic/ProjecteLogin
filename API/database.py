@@ -1,4 +1,5 @@
 import mysql.connector
+import logging
 from dotenv import load_dotenv
 import os
 import sys
@@ -9,8 +10,15 @@ def inicialitzar_base_dades(db_config):
         mydb = mysql.connector.connect(
             host=db_config['host'],
             user=db_config['user'],
-            password=db_config['password']
+            password=db_config['password'],
+            collation=db_config['utf8mb4_general_ci']
         )
+    except mysql.connector.Error as err:
+        logging.error(f"Error de connexió a la base de dades: {err}")
+        sys.exit(1)  # Finalitzar l'aplicació amb codi d'error 1
+
+    try:
+ 
         mycursor = mydb.cursor()
 
         # Comprovar si la base de dades existeix
@@ -21,11 +29,13 @@ def inicialitzar_base_dades(db_config):
             # Intentar crear la base de dades
             try:
                 mycursor.execute(f"CREATE DATABASE {db_config['database']} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
-                print(f"Base de dades '{db_config['database']}' creada correctament.")
+                logging.info(f"Base de dades '{db_config['database']}' creada correctament.")
             except mysql.connector.Error as err:
-                print(f"Error: No es pot crear la base de dades. Potser no tens els privilegis necessaris. Detalls: {err}")
+                logging.error(f"Error: No es pot crear la base de dades. Potser no tens els privilegis necessaris. Detalls: {err}")
                 sys.exit(1)  # Finalitzar l'aplicació amb codi d'error 1
-
+        else:
+            logging.info("La base de dades ja existeix.")
+            
         # Connectar a la base de dades específica
         mydb.database = db_config['database']
         mycursor = mydb.cursor()
@@ -49,16 +59,16 @@ def inicialitzar_base_dades(db_config):
             mycursor.execute("CREATE TABLE passwords (flag VARCHAR(100))")
             mycursor.execute("INSERT INTO passwords (flag) VALUES ('It was good that all beautiful things were also a little sad. It made them seem more real.')")
             mydb.commit()
-            print("Taules creades correctament.")
+            logging.info("Taules creades correctament.")
         else:
-            print("Les taules ja existeixen.")
+            logging.info("Les taules ja existeixen.")
 
     except mysql.connector.Error as err:
-        print(f"Error: {err}")
+        logging.error(f"Error: {err}")
         sys.exit(1)  # Finalitzar l'aplicació amb codi d'error 1
 
     finally:
         if mydb.is_connected():
             mycursor.close()
             mydb.close()
-            print("Connexió a la base de dades tancada.")
+            logging.info("Connexió a la base de dades tancada.")

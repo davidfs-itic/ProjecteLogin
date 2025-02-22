@@ -14,11 +14,11 @@ Executeu la seguent comanda per crear l'arxiu .env
 ```
 cat <<EOF > ./ProjecteLogin/API/.env
 DB_USER=root
-DB_PASSWORD=P@ssword
+DB_PASSWORD=P@ssw0rd
 DB_HOST=mariadb
 DB_NAME=loginapi
 SECRET_KEY=230200495632927592
-EMAIL_HOST=smtp
+EMAIL_HOST=mailhog
 EMAIL_PORT=1025
 EMAIL_USER=noreply@loginapi.net
 EMAIL_PASSWORD=password_fake
