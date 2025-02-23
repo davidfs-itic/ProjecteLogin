@@ -32,7 +32,7 @@ EOF
 Executem les comandes seguents:
 ```
 cd ProjecteLogin
-docker-compose up -d --build
+docker-compose up -d --build 
 docker logs loginapi
 ```
 En el log del contenidor, haurem de veure els missatges de èxit o error en la comprovació de la base de dades.

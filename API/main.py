@@ -122,16 +122,25 @@ def validar_usuari(token: str):
 @app.post("/login/")
 def iniciar_sessio(usuari: UserLogin):
     cursor.execute(
-        "SELECT id, contrassenya FROM usuaris WHERE email = %s AND validat = %s",
+        "SELECT id, nom_usuari, email, contrassenya FROM usuaris WHERE email = %s AND validat = %s",
         (usuari.email, True)
     )
     usuari_db = cursor.fetchone()
-    if not usuari_db or not verificar_contrassenya(usuari.contrassenya, usuari_db[1]):
+    
+    if not usuari_db or not verificar_contrassenya(usuari.contrassenya, usuari_db[3]):
         raise HTTPException(status_code=400, detail="Credencials incorrectes o usuari no validat")
     
     token_expire = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = crear_token_daccess({"sub": usuari.email}, token_expire)
-    return {"access_token": token, "token_type": "bearer"}
+    token = crear_token_daccess({"sub": usuari_db[0]}, token_expire)
+    
+    return {
+        "id": usuari_db[0],  # L'id és un Int (no cal convertir-lo a String)
+        "nom_usuari": usuari_db[1],
+        "email": usuari_db[2],
+        "contrassenya": usuari_db[3],  # Incloem la contrasenya (encriptada)
+        "access_token": token,  # El camp es diu "access_token" a la resposta JSON
+        "token_type": "bearer"  # El camp es diu "token_type" a la resposta JSON
+    }
 
 # Endpoint protegit amb JWT
 @app.get("/perfil/")
