@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  loginapi:
+    build:
+      context: .
+      dockerfile: ./loginapi.Dockerfile
+    container_name: loginapi
+    restart: unless-stopped
+    ports:
+      - 8443:443  # HTTPS
+    networks:
+      - internal
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # Port SMTP per enviar correus
+      - "8025:8025"  # Interfície web per veure els correus
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: internal
+    external: true
