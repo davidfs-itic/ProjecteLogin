@@ -20,3 +20,28 @@ TOKEN_CONFIRMATION_URL=https://**loginapiIP**:8443/validar
 EOF
 ```
 ! -> Cal assegurar-se que l'usuari té permisos per crear bases de dades.
+
+## Comandes de docker per veure informació dels contenidors
+### Veure llista de contenidors i el seu estat
+docker container list -a
+
+### Veure els logs d'un contenidor
+docker logs {nomcontenidor}
+
+### Aturar un contenidor
+docker stop {nomcontenidor}
+
+### Engegar un contenidor 
+docker start {nomcontenidor}
+
+## Comandes de docker-compose per aixecar o aturar conjunts de contenidors.
+
+(Des de la carpeta on està l'arxiu docker-compose-yaml)
+
+### Aixecar els contenidors de l'arxiu docker-compose.yaml
+docker-compose up -d --build
+
+### Aturar i eliminar els contenidors de l'arxiu docker-compose.yaml
+docker-compose down
+
+
